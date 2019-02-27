@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="rfidUser" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/rfidUser" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/rfidUser" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+		</Compiler>
+		<Unit filename="../commPort/Detect_SO.h" />
+		<Unit filename="../commPort/SCCArgumentParser.cpp" />
+		<Unit filename="../commPort/SCCArgumentParser.h" />
+		<Unit filename="../commPort/SCCCommPort.cpp" />
+		<Unit filename="../commPort/SCCCommPort.h" />
+		<Unit filename="../commPort/SCCLinuxComPort.cpp" />
+		<Unit filename="../commPort/SCCRealTime.cpp" />
+		<Unit filename="../commPort/SCCRealTime.h" />
+		<Unit filename="../main_control/CSocket.cpp" />
+		<Unit filename="../main_control/CSocket.h" />
+		<Unit filename="../main_control/SCCDeviceNames.h" />
+		<Unit filename="../main_control/SCCLog.cpp" />
+		<Unit filename="../main_control/SCCLog.h" />
+		<Unit filename="SCCRfidUserProtocol.cpp" />
+		<Unit filename="SCCRfidUserProtocol.h" />
+		<Unit filename="main.cpp" />
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
