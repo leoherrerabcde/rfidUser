@@ -164,6 +164,46 @@ void SCCRfidUserProtocol::getCmdSWVersion(int addr, char* buffer, char& len)
     len = p - buffer;
 }
 
+bool SCCRfidUserProtocol::getRfidUserResponse(char addr, char* buffer, char len)
+{
+    char cmd, param, status;
+    char* data;
+
+    if (!verifyResponseFormat(buffer, len, cmd, param, status, &data, m_iDataLen))
+        return false;
+
+    memcpy(m_chData, data, m_iDataLen);
+
+    return true;
+}
+
+bool SCCRfidUserProtocol::verifyResponseFormat(char* buffer, char len, char& cmd, char& param, char& status, char** data, int& dataLen)
+{
+    char* p     = buffer;
+    int16_t inputLength;
+
+    if (len < 8)
+        return false;
+    if (*p++ != STX_BYTE)
+        return false;
+    {
+        unsigned char* d = (unsigned char*)&inputLength;
+        *(d+1)  = *p++;
+        *d      = *p++;
+    }
+    if (len < inputLength+5)
+        return false;
+    cmd     = *p++;
+    param   = *p++;
+    status  = *p++;
+    *data   = p;
+    dataLen = inputLength;
+    p += (inputLength-2);
+    if (*p != (char)calcCRC((unsigned char*)buffer, (unsigned char*)p))
+        return false;
+    return true;
+}
+
 unsigned char SCCRfidUserProtocol::calcCRC(unsigned char* pFirst, unsigned char* pEnd)
 {
     unsigned char ucBCC = '\0';
@@ -191,7 +231,7 @@ unsigned char SCCRfidUserProtocol::calcLRC(unsigned char* pFirst, unsigned char 
     return ucLRC;
 }
 
-std::string SCCRfidUserProtocol::convChar2Hex(char* buffer, char& len)
+std::string SCCRfidUserProtocol::convChar2Hex(char* buffer, int len)
 {
     std::stringstream ss;
 
@@ -201,7 +241,7 @@ std::string SCCRfidUserProtocol::convChar2Hex(char* buffer, char& len)
     return std::string(ss.str());
 }
 
-bool SCCRfidUserProtocol::getWGTResponse(std::string& cmd,
+/*bool SCCRfidUserProtocol::getWGTResponse(std::string& cmd,
                                         int& addr,
                                         char* resp,
                                         char& respLen)
@@ -273,9 +313,9 @@ bool SCCRfidUserProtocol::getWGTResponse(std::string& cmd,
     while (bCmd == false && m_iBufferSize > 0);
 
     return bCmd;
-}
+}*/
 
-bool SCCRfidUserProtocol::getWGTResponse(char* buffer,
+/*bool SCCRfidUserProtocol::getWGTResponse(char* buffer,
                                         char len,
                                         std::string& cmd,
                                         int& addr,
@@ -286,8 +326,8 @@ bool SCCRfidUserProtocol::getWGTResponse(char* buffer,
         return false;
 
     int newLen = len;
-    if (m_iBufferSize + len > MAX_WGT_BUFFER_SIZE)
-        newLen = MAX_WGT_BUFFER_SIZE - m_iBufferSize;
+    if (m_iBufferSize + len > MAX_RFID_BUF_SIZE)
+        newLen = MAX_RFID_BUF_SIZE - m_iBufferSize;
 
     if (newLen <= 0)
     {
@@ -301,7 +341,7 @@ bool SCCRfidUserProtocol::getWGTResponse(char* buffer,
     m_pLast += len;
 
     return getWGTResponse(cmd, addr, resp, respLen);
-}
+}*/
 
 std::string SCCRfidUserProtocol::getWGTCommand(char cmd)
 {
@@ -632,15 +672,15 @@ std::string SCCRfidUserProtocol::printStatus(char addr, bool addStrData)
     if (addr > MAX_CHANNELS)
         return "";
 
-    FlowRegisters& reg  = m_Register[(unsigned char)(addr-1)];
+    //FlowRegisters& reg  = m_Register[(unsigned char)(addr-1)];
 
     std::stringstream ss;
 
     ss << FRAME_START_MARK ;
 
-    ss << MSG_HEADER_TYPE << ASSIGN_CHAR << DEVICE_FLOWMETER;
+    ss << MSG_HEADER_TYPE << ASSIGN_CHAR << DEVICE_RFID_BOMBERO;
 
-    ss << SEPARATOR_CHAR << VAR_INSTANTFLOWRATE 		<< ASSIGN_CHAR << reg.m_dInstantFlowRate;
+    /*ss << SEPARATOR_CHAR << VAR_INSTANTFLOWRATE 		<< ASSIGN_CHAR << reg.m_dInstantFlowRate;
     ss << SEPARATOR_CHAR << VAR_FLUIDSPEED 				<< ASSIGN_CHAR << reg.m_dFluidSpeed;
     ss << SEPARATOR_CHAR << VAR_MEASUREFLUIDSOUNDSPEED 	<< ASSIGN_CHAR << reg.m_dMeasureFluidSoundSpeed;
     ss << SEPARATOR_CHAR << VAR_POSACUMFLOWRATE 		<< ASSIGN_CHAR << reg.m_lPosAcumFlowRate;
@@ -654,7 +694,7 @@ std::string SCCRfidUserProtocol::printStatus(char addr, bool addStrData)
     {
         ss << SEPARATOR_CHAR << "strData" << ASSIGN_CHAR << m_strData;
         ss << SEPARATOR_CHAR << "data_len" << ASSIGN_CHAR << m_iDataLen;
-    }
+    }*/
 
     ss << FRAME_STOP_MARK;
 
@@ -771,7 +811,7 @@ unsigned char SCCRfidUserProtocol::asciiHexToDec(const char* hex)
     return asciiHexToDec(*hex, *(hex+1));
 }
 
-bool SCCRfidUserProtocol::getFlowMeterResponse(char addr, char* buffer, char len)
+/*bool SCCRfidUserProtocol::getFlowMeterResponse(char addr, char* buffer, char len)
 {
     char* p = buffer;
 
@@ -791,7 +831,7 @@ bool SCCRfidUserProtocol::getFlowMeterResponse(char addr, char* buffer, char len
         return false;
     readRTUData(addr, p, count);
     return true;
-}
+}*/
 
 bool SCCRfidUserProtocol::checkAddress(char addr, char* frame)
 {
@@ -816,7 +856,7 @@ bool SCCRfidUserProtocol::checkLRC(char* pFirst, size_t len)
     return compareValueToBuffer(lrc, pFirst+len, 2);
 }
 
-void SCCRfidUserProtocol::readRTUData(char addr, char* pFirst, size_t len)
+/*void SCCRfidUserProtocol::readRTUData(char addr, char* pFirst, size_t len)
 {
     putData(pFirst, len);
     char* pSrc = pFirst;
@@ -845,7 +885,7 @@ void SCCRfidUserProtocol::readRTUData(char addr, char* pFirst, size_t len)
     reg.m_lNetAcumFlowRate          = rawDat.lRegister[L_NETACUMFLOWRATE];
     reg.m_dNetAcumFlowRateDecPart   = rawDat.fRegister[D_NETACUMFLOWRATEDECPART];
 
-}
+}*/
 
 void SCCRfidUserProtocol::asciiHexToFloat(unsigned char* pDst, char* pSrc, size_t bytes)
 {
@@ -861,7 +901,7 @@ void SCCRfidUserProtocol::asciiToReal4(char* p, double& val, char num)
 {
 }
 
-void SCCRfidUserProtocol::putData(char* p, char num)
+/*void SCCRfidUserProtocol::putData(char* p, char num)
 {
     //std::cout << "Data: ";
     m_iDataLen = num;
@@ -869,65 +909,10 @@ void SCCRfidUserProtocol::putData(char* p, char num)
 
     m_strData = p;
     return;
-}
+}*/
 
 void SCCRfidUserProtocol::printData()
 {
-    std::cout << "Data: " << m_strData << std::endl;
-
-    const size_t sizeRawData = sizeof(float);
-    size_t sz = m_iDataLen / (sizeRawData*2);
-
-    if (sz)
-    {
-        float       fReg[sz];
-        int32_t     lReg[sz];
-
-        char* pSrc = (char*)m_strData.c_str();
-        unsigned char* pDst1 = (unsigned char*)&fReg;
-        unsigned char* pDst2 = (unsigned char*)&lReg;
-
-        for (size_t i = 0; i < sz ; ++i)
-        {
-            asciiHexToFloat(pDst1, pSrc, sizeRawData);
-            asciiHexToFloat(pDst2, pSrc, sizeRawData);
-            pDst1 += sizeRawData;
-            pDst2 += sizeRawData;
-            pSrc += sizeRawData*2;
-        }
-
-        for (size_t i = 0; i < sz ; ++i)
-        {
-            std::cout << "float: " << fReg[i];
-            std::cout << ", Long: " << lReg[i];
-            std::cout << std::endl;
-        }
-    }
-    else
-    {
-        const size_t sizeData = sizeof(int16_t);
-        sz = m_iDataLen / (sizeData*2);
-
-        if (sz)
-        {
-            int16_t     lReg[sz];
-
-            char* pSrc = (char*)m_strData.c_str();
-            unsigned char* pDst2 = (unsigned char*)&lReg;
-
-            for (size_t i = 0; i < sz ; ++i)
-            {
-                asciiHexToFloat(pDst2, pSrc, sizeData);
-                pDst2 += sizeData;
-                pSrc += sizeData*2;
-            }
-
-            for (size_t i = 0; i < sz ; ++i)
-            {
-                std::cout << "Long: " << lReg[i];
-                std::cout << std::endl;
-            }
-        }
-    }
+    std::cout << "Data: " << convChar2Hex(m_chData, m_iDataLen) << std::endl;
 }
 

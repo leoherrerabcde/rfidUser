@@ -32,7 +32,7 @@
 
 #define RTU_CMD_READ    0x03
 
-#define MAX_WGT_BUFFER_SIZE 512
+#define MAX_RFID_BUF_SIZE   4096
 
 #define MAX_CHANNELS        1
 
@@ -152,7 +152,7 @@ struct ActionStruct
 
 struct TagDataStruct
 {
-    char    chTagData[MAX_WGT_BUFFER_SIZE];
+    char    chTagData[MAX_RFID_BUF_SIZE];
     char    chLenData;
 
     TagDataStruct(const char* buffer, const char len) : chLenData(len)
@@ -174,7 +174,7 @@ struct VarStatus
     int     iChangesCount;
 };
 
-struct FlowRegisters
+/*struct FlowRegisters
 {
     double      m_dInstantFlowRate;
     double      m_dFluidSpeed;
@@ -185,13 +185,13 @@ struct FlowRegisters
     double      m_dNegAcumFlowRateDecPart;
     long        m_lNetAcumFlowRate;
     double      m_dNetAcumFlowRateDecPart;
-};
+};*/
 
-union RawData
+/*union RawData
 {
     float       fRegister[MAX_REGISTERS/2];
     int32_t     lRegister[MAX_REGISTERS/2];
-};
+};*/
 
 class SCCRfidUserProtocol
 {
@@ -199,15 +199,18 @@ class SCCRfidUserProtocol
         SCCRfidUserProtocol();
         virtual ~SCCRfidUserProtocol();
 
-        std::string convChar2Hex(char* buffer, char& len);
+        std::string convChar2Hex(char* buffer, int len);
         std::string getStrCmdStatusCheck(int addr, char* buffer, char& len);
         std::string getStrCmdSetAddr(int addr, int newAddr, char* buffer, char& len);
         std::string getStrCmdGetTagId(int addr, char* buffer, char& len);
 
         void getCmdSWVersion(int addr, char* buffer, char& len);
 
-        bool getWGTResponse(char* buffer, char len, std::string& cmd, int& addr, char* resp, char& respLen);
-        bool getFlowMeterResponse(char addr, char* buffer, char len);
+        /*bool getWGTResponse(char* buffer, char len, std::string& cmd, int& addr, char* resp, char& respLen);
+        bool getFlowMeterResponse(char addr, char* buffer, char len);*/
+
+        bool getRfidUserResponse(char addr, char* buffer, char len);
+        bool verifyResponseFormat(char* buffer, char len, char& cmd, char& param, char& status, char** data, int& dataLen);
 
         std::string getStrStatus(char status);
 
@@ -304,16 +307,16 @@ class SCCRfidUserProtocol
         bool checkLRC(char* pFirst, size_t len);
 
         bool compareValueToBuffer(unsigned char val, char* frame, size_t len);
-        void readRTUData(char addr, char* pFirst, size_t len);
+        //void readRTUData(char addr, char* pFirst, size_t len);
 
         void asciiToReal4(char* p, double& val, char num);
         void asciiHexToFloat(unsigned char* pDst, char* pSrc, size_t bytes);
-        void putData(char* p, char num);
+        //void putData(char* p, char num);
 
     private:
 
         int m_iAddress;
-        char m_chBufferIn[MAX_WGT_BUFFER_SIZE];
+        char m_chBufferIn[MAX_RFID_BUF_SIZE];
         char* m_pLast;
         int m_iBufferSize;
 
@@ -328,10 +331,11 @@ class SCCRfidUserProtocol
         bool m_bNozzleActivedVector[MAX_CHANNELS];
         bool m_bTagDetected[MAX_CHANNELS];
         VarStatus m_VarStatus[MAX_CHANNELS][MAX_VARS];
-        FlowRegisters m_Register[MAX_CHANNELS];
-        RawData         m_RawData[MAX_CHANNELS];
+        /*FlowRegisters m_Register[MAX_CHANNELS];
+        RawData         m_RawData[MAX_CHANNELS];*/
 
-        std::string     m_strData;
+        //std::string     m_strData;
+        char            m_chData[MAX_RFID_BUF_SIZE];
         int             m_iDataLen;
 
         TypeCPUCardActive   m_TypeCardEnable;

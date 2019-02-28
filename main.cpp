@@ -63,8 +63,8 @@ int main(int argc, char* argv[])
     int baudRate        = 9600;
     float fTimeFactor   = 1.0;
     int remotePort      = 0;
-    int startReg        = 1;
-    int numRegs         = MAX_REGISTERS;
+    //int startReg        = 1;
+    //int numRegs         = MAX_REGISTERS;
     char chBufferIn[MAX_BUFFER_IN];
     size_t posBuf       = 0;
     bool bOneTime       = false;
@@ -84,14 +84,14 @@ int main(int argc, char* argv[])
                 if (strArg == "ViewSend")
                     st_bSendMsgView = true;
         }
-        if ( argc > 6)
+        if ( argc > 5)
         {
-            startReg    = std::stoi(argv[5]);
+            /*startReg    = std::stoi(argv[5]);
             numRegs     = std::stoi(argv[6]);
         }
         if (argc > 7)
-        {
-            std::string strArg(argv[7]);
+        {*/
+            std::string strArg(argv[5]);
             if (strArg == "true")
                 bOneTime = true;
         }
@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
         std::cout << "Message: " << msg << " bin: "<< bufferOut << " sent." << std::endl;
 
     commPort.sendData(bufferOut, len);
-    commPort.sleepDuringTxRx(len+numRegs*4+11);
+    commPort.sleepDuringTxRx(len+4+11);
 
     if (st_bSendMsgView)
         cout << "Waiting for response" << std::endl;
@@ -157,7 +157,7 @@ int main(int argc, char* argv[])
                 cout << SCCRealTime::getTimeStamp() << ',' << "Sending Message: " << msg << " binary: "<< bufferOut << std::endl;
             }
             commPort.sendData(bufferOut, chLen);
-            commPort.sleepDuringTxRx(chLen+numRegs*4+11);
+            commPort.sleepDuringTxRx(chLen+4+11);
             //chLenLast = chLen;
             chLen = 0;
             //iTimeOut = 20;
@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
                 //char resp[256];
                 //int addr = iAddr;
                 //char respLen = 0;
-                bool bIsValidResponse = rfidUserProtocol.getFlowMeterResponse(iAddr, chBufferIn, posBuf);
+                bool bIsValidResponse = rfidUserProtocol.getRfidUserResponse(iAddr, chBufferIn, posBuf);
                 //bool bNextAction = false;
                 if (bIsValidResponse == true)
                 {
@@ -217,7 +217,7 @@ int main(int argc, char* argv[])
                 else
                 {
                     iTimeOut = 0;
-                    commPort.sleepDuringTxRx(numRegs*4+11-posBuf);
+                    commPort.sleepDuringTxRx(4+11);
                 }
             }
         }
