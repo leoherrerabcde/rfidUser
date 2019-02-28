@@ -5,7 +5,7 @@
 #include <sstream>
 #include <algorithm>
 
-#include "SCCFlowProtocol.h"
+#include "SCCRfidUserProtocol.h"
 
 #include "../commPort/SCCCommPort.h"
 #include "../commPort/SCCRealTime.h"
@@ -19,7 +19,7 @@ using namespace std;
 
 #define MAX_BUFFER_IN   2048
 
-static bool st_bSendMsgView = false;
+static bool st_bSendMsgView = true;
 static bool st_bRcvMsgView  = true;
 
 CSocket sckComPort;
@@ -32,7 +32,7 @@ std::string firstMessage()
     std::stringstream ss;
 
     ss << FRAME_START_MARK;
-    ss << DEVICE_NAME << ":" << DEVICE_FLOWMETER << ",";
+    ss << DEVICE_NAME << ":" << DEVICE_RFID_BOMBERO << ",";
     ss << SERVICE_PID << ":" << getpid();
     ss << FRAME_STOP_MARK;
 
@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
         bConnected  = false;
     }
     SCCCommPort commPort;
-    SCCFlowProtocol flowProtocol;
+    SCCRfidUserProtocol rfidUserProtocol;
     SCCRealTime clock;
 
     commPort.openPort(nPort, baudRate);
@@ -114,15 +114,16 @@ int main(int argc, char* argv[])
     int iAddr = 1;
     std::string msg;
 
-    //msg = flowProtocol.getStrCmdStatusCheck(iAddr, bufferOut, len);
-    msg = flowProtocol.getCmdReadRegisters(iAddr, bufferOut, len, startReg, numRegs);
+    //msg = rfidUserProtocol.getStrCmdStatusCheck(iAddr, bufferOut, len);
+    //msg = rfidUserProtocol.getCmdReadRegisters(iAddr, bufferOut, len, startReg, numRegs);
+    rfidUserProtocol.getCmdSWVersion(iAddr, bufferOut, len);
 
-    //flowProtocol.getCmdReadRegisters(iAddr, bufferOut, len);
+    //rfidUserProtocol.getCmdReadRegisters(iAddr, bufferOut, len);
 
-    msg = flowProtocol.convChar2Hex(bufferOut, len);
+    msg = rfidUserProtocol.convChar2Hex(bufferOut, len);
 
     if (st_bSendMsgView)
-        std::cout << "Message: " << bufferOut << " sent." << std::endl;
+        std::cout << "Message: " << msg << " bin: "<< bufferOut << " sent." << std::endl;
 
     commPort.sendData(bufferOut, len);
     commPort.sleepDuringTxRx(len+numRegs*4+11);
@@ -143,16 +144,17 @@ int main(int argc, char* argv[])
         if (iNoRxCounter >= 5)
         {
             iNoRxCounter = 0;
-            //flowProtocol.getStrCmdStatusCheck(iAddr, bufferOut, chLen);
-            flowProtocol.getCmdReadRegisters(iAddr, bufferOut, chLen, startReg, numRegs);
+            //rfidUserProtocol.getStrCmdStatusCheck(iAddr, bufferOut, chLen);
+            //rfidUserProtocol.getCmdReadRegisters(iAddr, bufferOut, chLen, startReg, numRegs);
+            rfidUserProtocol.getCmdSWVersion(iAddr, bufferOut, len);
         }
         if (chLen > 0)
         {
             if (st_bSendMsgView)
             {
                 cout << commPort.printCounter() << std::endl;
-                msg = flowProtocol.convChar2Hex(bufferOut, chLen);
-                cout << SCCRealTime::getTimeStamp() << ',' << "Sending Message: " << bufferOut << std::endl;
+                msg = rfidUserProtocol.convChar2Hex(bufferOut, chLen);
+                cout << SCCRealTime::getTimeStamp() << ',' << "Sending Message: " << msg << " binary: "<< bufferOut << std::endl;
             }
             commPort.sendData(bufferOut, chLen);
             commPort.sleepDuringTxRx(chLen+numRegs*4+11);
@@ -180,14 +182,14 @@ int main(int argc, char* argv[])
                 //len = (char)iLen;
                 /*if (st_bRcvMsgView)
                 {
-                    msg = flowProtocol.convChar2Hex(bufferIn, len);
+                    msg = rfidUserProtocol.convChar2Hex(bufferIn, len);
                     cout << ++nCount << " Buffer In(Hex): [" << msg << "]. Buffer In(char): [" << bufferIn << "]" << std::endl;
                 }*/
                 std::string strCmd;
                 //char resp[256];
                 //int addr = iAddr;
                 //char respLen = 0;
-                bool bIsValidResponse = flowProtocol.getFlowMeterResponse(iAddr, chBufferIn, posBuf);
+                bool bIsValidResponse = rfidUserProtocol.getFlowMeterResponse(iAddr, chBufferIn, posBuf);
                 //bool bNextAction = false;
                 if (bIsValidResponse == true)
                 {
@@ -197,18 +199,18 @@ int main(int argc, char* argv[])
                     {
                         //cout << ++nCount << " " << commPort.printCounter() << clock.getTimeStamp() << " Valid WGT Response" << std::endl;
                         /*if (strCmd == CMD_CHECKSTATUS)
-                            cout << ++nCount << " WGT Status: " << flowProtocol.getStrStatus(resp[0]) << endl;*/
+                            cout << ++nCount << " WGT Status: " << rfidUserProtocol.getStrStatus(resp[0]) << endl;*/
                     }
-                    /*bNextAction = flowProtocol.nextAction(iAddr, bufferOut, chLen, iTimeOut);
+                    /*bNextAction = rfidUserProtocol.nextAction(iAddr, bufferOut, chLen, iTimeOut);
                     if (bNextAction == true)*/
                         if (st_bRcvMsgView)
                         {
                             //std::stringstream ss;
-                            //ss << ++nCount << " " << commPort.printCounter() << flowProtocol.printStatus(iAddr) << std::endl;
-                            printMsg(flowProtocol.printStatus(iAddr));
+                            //ss << ++nCount << " " << commPort.printCounter() << rfidUserProtocol.printStatus(iAddr) << std::endl;
+                            printMsg(rfidUserProtocol.printStatus(iAddr));
                         }
                     if (st_bSendMsgView)
-                        flowProtocol.printData();
+                        rfidUserProtocol.printData();
                     if (bOneTime)
                         break;
                 }

@@ -1,5 +1,5 @@
-#ifndef SCCFLOWRPROTOCOL_H
-#define SCCFLOWRPROTOCOL_H
+#ifndef SCCRFIDUSERPROTOCOL_H
+#define SCCRFIDUSERPROTOCOL_H
 
 
 #include <vector>
@@ -20,6 +20,7 @@
 #define WGT_HEADER "WGTHeader"
 
 #define ADDRESS_BYTE    'U'
+#define STX_BYTE        '\2'
 #define ETX_BYTE        '\3'
 #define NULL_CHAR       '\0'
 #define TAB_CHAR        '\t'
@@ -97,6 +98,15 @@ enum VariableName
     NozzleActived,
     TagDetected,
     VariableName_size
+};
+
+enum TypeCPUCardActive
+{
+    No_Card = 0,
+    TypeACPU,
+    TypeBCPU,
+    M1Card,
+    SimCard,
 };
 
 struct commandStruct
@@ -183,16 +193,18 @@ union RawData
     int32_t     lRegister[MAX_REGISTERS/2];
 };
 
-class SCCFlowProtocol
+class SCCRfidUserProtocol
 {
     public:
-        SCCFlowProtocol();
-        virtual ~SCCFlowProtocol();
+        SCCRfidUserProtocol();
+        virtual ~SCCRfidUserProtocol();
 
         std::string convChar2Hex(char* buffer, char& len);
         std::string getStrCmdStatusCheck(int addr, char* buffer, char& len);
         std::string getStrCmdSetAddr(int addr, int newAddr, char* buffer, char& len);
         std::string getStrCmdGetTagId(int addr, char* buffer, char& len);
+
+        void getCmdSWVersion(int addr, char* buffer, char& len);
 
         bool getWGTResponse(char* buffer, char len, std::string& cmd, int& addr, char* resp, char& respLen);
         bool getFlowMeterResponse(char addr, char* buffer, char len);
@@ -214,6 +226,8 @@ class SCCFlowProtocol
         std::string getCmdReadRegisters(char addr, char* buffer, char& len, unsigned int startRegister, unsigned int numRegisters);
 
         void printData();
+
+        void enableCPUCard(TypeCPUCardActive cpuType) {m_TypeCardEnable = cpuType;}
 
     protected:
 
@@ -319,6 +333,10 @@ class SCCFlowProtocol
 
         std::string     m_strData;
         int             m_iDataLen;
+
+        TypeCPUCardActive   m_TypeCardEnable;
+        TypeCPUCardActive   m_TypeCardReady;
+
 };
 
-#endif // SCCFLOWRPROTOCOL_H
+#endif // SCCRFIDUSERPROTOCOL_H

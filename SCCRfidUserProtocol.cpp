@@ -1,4 +1,4 @@
-#include "SCCFlowProtocol.h"
+#include "SCCRfidUserProtocol.h"
 #include "../main_control/SCCDeviceNames.h"
 #include "../main_control/SCCLog.h"
 
@@ -74,7 +74,7 @@ static std::unordered_map<int,int> stVariableThresHoldMap =
 };
 
 
-SCCFlowProtocol::SCCFlowProtocol() : m_pLast(m_chBufferIn), m_iBufferSize(0), m_iDataLen(0)
+SCCRfidUserProtocol::SCCRfidUserProtocol() : m_pLast(m_chBufferIn), m_iBufferSize(0), m_iDataLen(0), m_TypeCardEnable(No_Card)
 {
     //ctor
     memset(m_bAlarmVector,0, sizeof(bool)*MAX_CHANNELS);
@@ -88,12 +88,12 @@ SCCFlowProtocol::SCCFlowProtocol() : m_pLast(m_chBufferIn), m_iBufferSize(0), m_
             m_VarStatus[addr][var].iThresHold   = stVariableThresHoldMap[var];
 }
 
-SCCFlowProtocol::~SCCFlowProtocol()
+SCCRfidUserProtocol::~SCCRfidUserProtocol()
 {
     //dtor
 }
 
-std::string SCCFlowProtocol::getStrCmdStatusCheck(int addr,
+std::string SCCRfidUserProtocol::getStrCmdStatusCheck(int addr,
                                                char* buffer,
                                                char& len)
 {
@@ -101,7 +101,7 @@ std::string SCCFlowProtocol::getStrCmdStatusCheck(int addr,
     return getCmdReadRegisters(addr, buffer, len, 0, 10);
 }
 
-std::string SCCFlowProtocol::getStrCmdSetAddr(int addr,
+std::string SCCRfidUserProtocol::getStrCmdSetAddr(int addr,
                                                int addr2,
                                                char* buffer,
                                                char& len)
@@ -109,14 +109,14 @@ std::string SCCFlowProtocol::getStrCmdSetAddr(int addr,
     return getStrCmd(CMD_ADDRESSSETTING, addr, addr2, buffer, len);
 }
 
-std::string SCCFlowProtocol::getStrCmdGetTagId(int addr,
+std::string SCCRfidUserProtocol::getStrCmdGetTagId(int addr,
                                                char* buffer,
                                                char& len)
 {
     return getStrCmd(CMD_GETTAGDATA, addr, 0, buffer, len);
 }
 
-std::string SCCFlowProtocol::getStrCmd(const std::string& cmd,
+std::string SCCRfidUserProtocol::getStrCmd(const std::string& cmd,
                                                int addr,
                                                int addr2,
                                                char* buffer,
@@ -147,7 +147,24 @@ std::string SCCFlowProtocol::getStrCmd(const std::string& cmd,
     return msg;
 }
 
-unsigned char SCCFlowProtocol::calcCRC(unsigned char* pFirst, unsigned char* pEnd)
+void SCCRfidUserProtocol::getCmdSWVersion(int addr, char* buffer, char& len)
+{
+    char* p     = buffer;
+    char* pBCC  = buffer;
+
+    *p++ = STX_BYTE;
+    *p++ = 0x00;
+    *p++ = 0x02;
+    *p++ = 0x31;
+    *p++ = 0x40;
+    *p++ = ETX_BYTE;
+    unsigned char chBCC = calcCRC((unsigned char*)pBCC, (unsigned char*)p);
+    *p++ = (char)chBCC;
+    *p = '\0';
+    len = p - buffer;
+}
+
+unsigned char SCCRfidUserProtocol::calcCRC(unsigned char* pFirst, unsigned char* pEnd)
 {
     unsigned char ucBCC = '\0';
 
@@ -157,7 +174,7 @@ unsigned char SCCFlowProtocol::calcCRC(unsigned char* pFirst, unsigned char* pEn
     return ucBCC;
 }
 
-unsigned char SCCFlowProtocol::calcLRC(unsigned char* pFirst, unsigned char len)
+unsigned char SCCRfidUserProtocol::calcLRC(unsigned char* pFirst, unsigned char len)
 {
     unsigned char ucLRC = 0;
 
@@ -174,7 +191,7 @@ unsigned char SCCFlowProtocol::calcLRC(unsigned char* pFirst, unsigned char len)
     return ucLRC;
 }
 
-std::string SCCFlowProtocol::convChar2Hex(char* buffer, char& len)
+std::string SCCRfidUserProtocol::convChar2Hex(char* buffer, char& len)
 {
     std::stringstream ss;
 
@@ -184,7 +201,7 @@ std::string SCCFlowProtocol::convChar2Hex(char* buffer, char& len)
     return std::string(ss.str());
 }
 
-bool SCCFlowProtocol::getWGTResponse(std::string& cmd,
+bool SCCRfidUserProtocol::getWGTResponse(std::string& cmd,
                                         int& addr,
                                         char* resp,
                                         char& respLen)
@@ -258,7 +275,7 @@ bool SCCFlowProtocol::getWGTResponse(std::string& cmd,
     return bCmd;
 }
 
-bool SCCFlowProtocol::getWGTResponse(char* buffer,
+bool SCCRfidUserProtocol::getWGTResponse(char* buffer,
                                         char len,
                                         std::string& cmd,
                                         int& addr,
@@ -286,7 +303,7 @@ bool SCCFlowProtocol::getWGTResponse(char* buffer,
     return getWGTResponse(cmd, addr, resp, respLen);
 }
 
-std::string SCCFlowProtocol::getWGTCommand(char cmd)
+std::string SCCRfidUserProtocol::getWGTCommand(char cmd)
 {
     for (auto it : stCmdList)
     {
@@ -296,7 +313,7 @@ std::string SCCFlowProtocol::getWGTCommand(char cmd)
     return CMD_INVALID;
 }
 
-void SCCFlowProtocol::moveBufferToLeft(char* pos, char len)
+void SCCRfidUserProtocol::moveBufferToLeft(char* pos, char len)
 {
     if (len == 0 || pos == m_chBufferIn)
         return;
@@ -313,12 +330,12 @@ void SCCFlowProtocol::moveBufferToLeft(char* pos, char len)
     m_pLast -= len;
 }
 
-std::string SCCFlowProtocol::getStrStatus(char status)
+std::string SCCRfidUserProtocol::getStrStatus(char status)
 {
     return stStatusMap[status];
 }
 
-void SCCFlowProtocol::addCommandToDvcMap(char cmd, char addr, char* resp, char len)
+void SCCRfidUserProtocol::addCommandToDvcMap(char cmd, char addr, char* resp, char len)
 {
     if (MAX_CHANNELS < addr)
         return;
@@ -327,7 +344,7 @@ void SCCFlowProtocol::addCommandToDvcMap(char cmd, char addr, char* resp, char l
     pCmdSt->set(cmd, addr, resp, len);
 }
 
-bool SCCFlowProtocol::nextAction(int addr, char* buffer, char& len, int& timeout)
+bool SCCRfidUserProtocol::nextAction(int addr, char* buffer, char& len, int& timeout)
 {
     if (MAX_CHANNELS < addr)
         return false;
@@ -352,7 +369,7 @@ bool SCCFlowProtocol::nextAction(int addr, char* buffer, char& len, int& timeout
     return res;
 }
 
-bool SCCFlowProtocol::nextActionFromStatus(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout)
+bool SCCRfidUserProtocol::nextActionFromStatus(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout)
 {
     if (cmdSt.len <1)
         return false;
@@ -389,14 +406,14 @@ bool SCCFlowProtocol::nextActionFromStatus(commandStruct& cmdSt, int addr, char*
     return true;
 }
 
-char SCCFlowProtocol::getStatus(char addr)
+char SCCRfidUserProtocol::getStatus(char addr)
 {
     if (addr > MAX_CHANNELS)
         return STATUS_FAILURE;
     return m_chStatusVector[addr-1];
 }
 
-bool SCCFlowProtocol::nextActionFromAddressSetting(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout)
+bool SCCRfidUserProtocol::nextActionFromAddressSetting(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout)
 {
     ActionStruct actionSt(CMD_CHECKSTATUS, 1000, false, false, false);
 
@@ -405,7 +422,7 @@ bool SCCFlowProtocol::nextActionFromAddressSetting(commandStruct& cmdSt, int add
     return true;
 }
 
-bool SCCFlowProtocol::nextActionFromGetTagData(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout)
+bool SCCRfidUserProtocol::nextActionFromGetTagData(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout)
 {
     addTagDataToMap(cmdSt, addr);
     setTagDetected(addr);
@@ -418,7 +435,7 @@ bool SCCFlowProtocol::nextActionFromGetTagData(commandStruct& cmdSt, int addr, c
     return true;
 }
 
-void SCCFlowProtocol::addStatusToVector(char addr, commandStruct& cmdSt)
+void SCCRfidUserProtocol::addStatusToVector(char addr, commandStruct& cmdSt)
 {
     if (addr <1 || cmdSt.len < 1)
         return;
@@ -429,7 +446,7 @@ void SCCFlowProtocol::addStatusToVector(char addr, commandStruct& cmdSt)
     m_chStatusVector[addr - 1] = cmdSt.data[0];
 }
 
-void SCCFlowProtocol::addTagDataToMap(commandStruct& cmdSt, char addr)
+void SCCRfidUserProtocol::addTagDataToMap(commandStruct& cmdSt, char addr)
 {
     auto it = m_TagDataMap.find(addr);
     if (it ==m_TagDataMap.end())
@@ -444,7 +461,7 @@ void SCCFlowProtocol::addTagDataToMap(commandStruct& cmdSt, char addr)
     }
 }
 
-void SCCFlowProtocol::getCommandFromAction(ActionStruct& actionSt,char addr, char* buffer, char& len)
+void SCCRfidUserProtocol::getCommandFromAction(ActionStruct& actionSt,char addr, char* buffer, char& len)
 {
     if (actionSt.strCmd == CMD_CHECKSTATUS)
         getStrCmdStatusCheck(addr, buffer, len);
@@ -459,7 +476,7 @@ void SCCFlowProtocol::getCommandFromAction(ActionStruct& actionSt,char addr, cha
     }
 }
 
-void SCCFlowProtocol::setVar(int addr, int var)
+void SCCRfidUserProtocol::setVar(int addr, int var)
 {
     VarStatus& v = m_VarStatus[addr][var];
 
@@ -467,7 +484,7 @@ void SCCFlowProtocol::setVar(int addr, int var)
     v.iChangesCount = 0;
 }
 
-bool SCCFlowProtocol::clearVar(int addr, int var)
+bool SCCRfidUserProtocol::clearVar(int addr, int var)
 {
     VarStatus& v = m_VarStatus[addr][var];
 
@@ -483,7 +500,7 @@ bool SCCFlowProtocol::clearVar(int addr, int var)
     return false;
 }
 
-bool SCCFlowProtocol::isSetVar(int addr, int var)
+bool SCCRfidUserProtocol::isSetVar(int addr, int var)
 {
     VarStatus& v = m_VarStatus[addr][var];
 
@@ -491,70 +508,70 @@ bool SCCFlowProtocol::isSetVar(int addr, int var)
 }
 
 
-void SCCFlowProtocol::setAlarm(char addr)
+void SCCRfidUserProtocol::setAlarm(char addr)
 {
     setVector(addr, m_bAlarmVector);
     setVar(addr, BatteryAlarm);
 }
 
-void SCCFlowProtocol::setNozzleActivated(char addr)
+void SCCRfidUserProtocol::setNozzleActivated(char addr)
 {
     setVector(addr, m_bNozzleActivedVector);
     setVar(addr, NozzleActived);
 }
 
-void SCCFlowProtocol::setFail(char addr)
+void SCCRfidUserProtocol::setFail(char addr)
 {
     setVector(addr, m_bFailVector);
     setVar(addr, FailStatus);
 }
 
-void SCCFlowProtocol::setTagDetected(char addr)
+void SCCRfidUserProtocol::setTagDetected(char addr)
 {
     setVector(addr, m_bTagDetected);
     setVar(addr, TagDetected);
 }
 
 
-void SCCFlowProtocol::clearAlarm(char addr)
+void SCCRfidUserProtocol::clearAlarm(char addr)
 {
     if (clearVar(addr, BatteryAlarm))
         clearVector(addr, m_bAlarmVector);
 }
 
-void SCCFlowProtocol::clearNozzleActivated(char addr)
+void SCCRfidUserProtocol::clearNozzleActivated(char addr)
 {
     if (clearVar(addr, NozzleActived))
         clearVector(addr, m_bNozzleActivedVector);
 }
 
-void SCCFlowProtocol::clearFail(char addr)
+void SCCRfidUserProtocol::clearFail(char addr)
 {
     if (clearVar(addr, FailStatus))
         clearVector(addr, m_bFailVector);
 }
 
-void SCCFlowProtocol::clearTagDetected(char addr)
+void SCCRfidUserProtocol::clearTagDetected(char addr)
 {
     if (clearVar(addr, TagDetected))
         clearVector(addr, m_bTagDetected);
 }
 
-void SCCFlowProtocol::setVector(char addr, bool* vect)
+void SCCRfidUserProtocol::setVector(char addr, bool* vect)
 {
     if (MAX_CHANNELS < addr)
         return;
     vect[addr-1] = true;
 }
 
-void SCCFlowProtocol::clearVector(char addr, bool* vect)
+void SCCRfidUserProtocol::clearVector(char addr, bool* vect)
 {
     if (MAX_CHANNELS < addr)
         return;
     vect[addr-1] = false;
 }
 
-bool SCCFlowProtocol::isVector(char addr, bool* vect)
+bool SCCRfidUserProtocol::isVector(char addr, bool* vect)
 {
     if (MAX_CHANNELS < addr)
         return false;
@@ -562,7 +579,7 @@ bool SCCFlowProtocol::isVector(char addr, bool* vect)
     return vect[addr-1];
 }
 
-ActionStruct SCCFlowProtocol::getActionFromStatus(char status)
+ActionStruct SCCRfidUserProtocol::getActionFromStatus(char status)
 {
     ActionStruct actionSt;
     switch(status)
@@ -610,7 +627,7 @@ ActionStruct SCCFlowProtocol::getActionFromStatus(char status)
     return actionSt;
 }
 
-std::string SCCFlowProtocol::printStatus(char addr, bool addStrData)
+std::string SCCRfidUserProtocol::printStatus(char addr, bool addStrData)
 {
     if (addr > MAX_CHANNELS)
         return "";
@@ -644,27 +661,27 @@ std::string SCCFlowProtocol::printStatus(char addr, bool addStrData)
     return std::string(ss.str());
 }
 
-bool SCCFlowProtocol::isAlarm(char addr)
+bool SCCRfidUserProtocol::isAlarm(char addr)
 {
     return isVector(addr, m_bAlarmVector);
 }
 
-bool SCCFlowProtocol::isFail(char addr)
+bool SCCRfidUserProtocol::isFail(char addr)
 {
     return isVector(addr, m_bFailVector);
 }
 
-bool SCCFlowProtocol::isNozzleActived(char addr)
+bool SCCRfidUserProtocol::isNozzleActived(char addr)
 {
     return isVector(addr, m_bNozzleActivedVector);
 }
 
-bool SCCFlowProtocol::isTagDetected(char addr)
+bool SCCRfidUserProtocol::isTagDetected(char addr)
 {
     return isVector(addr, m_bTagDetected);
 }
 
-std::string SCCFlowProtocol::boolToString(bool b, const std::string& valTrue, const std::string& valFalse)
+std::string SCCRfidUserProtocol::boolToString(bool b, const std::string& valTrue, const std::string& valFalse)
 {
     if (b ==true)
     {
@@ -677,7 +694,7 @@ std::string SCCFlowProtocol::boolToString(bool b, const std::string& valTrue, co
     return "false";
 }
 
-bool SCCFlowProtocol::getTagId(char addr, char* tagBuffer, char& len)
+bool SCCRfidUserProtocol::getTagId(char addr, char* tagBuffer, char& len)
 {
     auto it = m_TagDataMap.find(addr);
     if (it ==m_TagDataMap.end())
@@ -695,7 +712,7 @@ bool SCCFlowProtocol::getTagId(char addr, char* tagBuffer, char& len)
     return true;
 }
 
-std::string SCCFlowProtocol::getCmdReadRegisters(char addr,
+std::string SCCRfidUserProtocol::getCmdReadRegisters(char addr,
                                     char* buffer,
                                     char& len,
                                     unsigned int startRegister,
@@ -725,7 +742,7 @@ std::string SCCFlowProtocol::getCmdReadRegisters(char addr,
     return msg;
 }
 
-unsigned char SCCFlowProtocol::asciiHexToDec(const char hexHi, const char hexLo)
+unsigned char SCCRfidUserProtocol::asciiHexToDec(const char hexHi, const char hexLo)
 {
     unsigned char hi, lo;
 
@@ -737,7 +754,7 @@ unsigned char SCCFlowProtocol::asciiHexToDec(const char hexHi, const char hexLo)
     return lo;
 }
 
-unsigned char SCCFlowProtocol::asciiHexToDec(const char hex)
+unsigned char SCCRfidUserProtocol::asciiHexToDec(const char hex)
 {
     unsigned char d;
 
@@ -749,12 +766,12 @@ unsigned char SCCFlowProtocol::asciiHexToDec(const char hex)
     return d;
 }
 
-unsigned char SCCFlowProtocol::asciiHexToDec(const char* hex)
+unsigned char SCCRfidUserProtocol::asciiHexToDec(const char* hex)
 {
     return asciiHexToDec(*hex, *(hex+1));
 }
 
-bool SCCFlowProtocol::getFlowMeterResponse(char addr, char* buffer, char len)
+bool SCCRfidUserProtocol::getFlowMeterResponse(char addr, char* buffer, char len)
 {
     char* p = buffer;
 
@@ -776,30 +793,30 @@ bool SCCFlowProtocol::getFlowMeterResponse(char addr, char* buffer, char len)
     return true;
 }
 
-bool SCCFlowProtocol::checkAddress(char addr, char* frame)
+bool SCCRfidUserProtocol::checkAddress(char addr, char* frame)
 {
     return compareValueToBuffer(addr, frame, 2);
 }
 
-bool SCCFlowProtocol::checkCommand(char cmd, char* frame)
+bool SCCRfidUserProtocol::checkCommand(char cmd, char* frame)
 {
     return compareValueToBuffer(cmd, frame, 2);
 }
 
-bool SCCFlowProtocol::compareValueToBuffer(unsigned char val, char* frame, size_t len)
+bool SCCRfidUserProtocol::compareValueToBuffer(unsigned char val, char* frame, size_t len)
 {
     char buf[len*2];
     numToAscii(val, buf, len*2);
     return (memcmp(buf, frame, len*2) == 0);
 }
 
-bool SCCFlowProtocol::checkLRC(char* pFirst, size_t len)
+bool SCCRfidUserProtocol::checkLRC(char* pFirst, size_t len)
 {
     unsigned char lrc = calcLRC((unsigned char*)pFirst, len);
     return compareValueToBuffer(lrc, pFirst+len, 2);
 }
 
-void SCCFlowProtocol::readRTUData(char addr, char* pFirst, size_t len)
+void SCCRfidUserProtocol::readRTUData(char addr, char* pFirst, size_t len)
 {
     putData(pFirst, len);
     char* pSrc = pFirst;
@@ -830,7 +847,7 @@ void SCCFlowProtocol::readRTUData(char addr, char* pFirst, size_t len)
 
 }
 
-void SCCFlowProtocol::asciiHexToFloat(unsigned char* pDst, char* pSrc, size_t bytes)
+void SCCRfidUserProtocol::asciiHexToFloat(unsigned char* pDst, char* pSrc, size_t bytes)
 {
     pSrc += ((bytes-1)*2);
     for (size_t i = 0; i < bytes; ++i)
@@ -840,11 +857,11 @@ void SCCFlowProtocol::asciiHexToFloat(unsigned char* pDst, char* pSrc, size_t by
     }
 }
 
-void SCCFlowProtocol::asciiToReal4(char* p, double& val, char num)
+void SCCRfidUserProtocol::asciiToReal4(char* p, double& val, char num)
 {
 }
 
-void SCCFlowProtocol::putData(char* p, char num)
+void SCCRfidUserProtocol::putData(char* p, char num)
 {
     //std::cout << "Data: ";
     m_iDataLen = num;
@@ -854,7 +871,7 @@ void SCCFlowProtocol::putData(char* p, char num)
     return;
 }
 
-void SCCFlowProtocol::printData()
+void SCCRfidUserProtocol::printData()
 {
     std::cout << "Data: " << m_strData << std::endl;
 
