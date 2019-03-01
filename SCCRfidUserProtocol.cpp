@@ -93,6 +93,7 @@ SCCRfidUserProtocol::SCCRfidUserProtocol() : m_pLast(m_chBufferIn), m_iBufferSiz
     m_bVersionDetected  = false;
     m_bCardDetected     = false;
     m_bDetectEvent      = false;
+    m_bBeepSound        = false;
 }
 
 SCCRfidUserProtocol::~SCCRfidUserProtocol()
@@ -100,13 +101,13 @@ SCCRfidUserProtocol::~SCCRfidUserProtocol()
     //dtor
 }
 
-std::string SCCRfidUserProtocol::getStrCmdStatusCheck(int addr,
+/*std::string SCCRfidUserProtocol::getStrCmdStatusCheck(int addr,
                                                char* buffer,
                                                char& len)
 {
     //return getStrCmd(CMD_CHECKSTATUS, addr, 0, buffer, len);
     return getCmdReadRegisters(addr, buffer, len, 0, 10);
-}
+}*/
 
 std::string SCCRfidUserProtocol::getStrCmdSetAddr(int addr,
                                                int addr2,
@@ -164,6 +165,27 @@ void SCCRfidUserProtocol::getCmdSerialNumber(int addr, char* buffer, char& len)
     *p++ = 0x02;
     *p++ = 0x34;
     *p++ = 0x31;
+    *p++ = ETX_BYTE;
+    unsigned char chBCC = calcCRC((unsigned char*)pBCC, (unsigned char*)p);
+    *p++ = (char)chBCC;
+    *p = '\0';
+    len = p - buffer;
+}
+
+void SCCRfidUserProtocol::getCmdBeepSound(int addr, char* buffer, char& len, char times, int elapsed)
+{
+    char* p     = buffer;
+    char* pBCC  = buffer;
+    char* pElapsed  = (char*)&elapsed;
+
+    *p++ = STX_BYTE;
+    *p++ = 0x00;
+    *p++ = 0x05;
+    *p++ = 0x31;
+    *p++ = 0x3E;
+    *p++ = times;
+    *p++ = *(pElapsed+1);
+    *p++ = *pElapsed;
     *p++ = ETX_BYTE;
     unsigned char chBCC = calcCRC((unsigned char*)pBCC, (unsigned char*)p);
     *p++ = (char)chBCC;
@@ -401,104 +423,11 @@ std::string SCCRfidUserProtocol::getStrStatus(char status)
     return stStatusMap[status];
 }
 
-void SCCRfidUserProtocol::addCommandToDvcMap(char cmd, char addr, char* resp, char len)
-{
-    if (MAX_CHANNELS < addr)
-        return;
-
-    commandStruct *pCmdSt = &m_DeviceVector[addr-1]; // (cmd, addr, resp, len);
-    pCmdSt->set(cmd, addr, resp, len);
-}
-
-bool SCCRfidUserProtocol::nextAction(int addr, char* buffer, char& len, int& timeout)
-{
-    if (MAX_CHANNELS < addr)
-        return false;
-
-    commandStruct CmdSt = m_DeviceVector[addr-1];
-
-    bool res = false;
-
-    if (CmdSt.command == stCmdList[CMD_CHECKSTATUS])
-    {
-        res = nextActionFromStatus(CmdSt, addr, buffer, len, timeout);
-    }
-    else if (CmdSt.command == stCmdList[CMD_ADDRESSSETTING])
-    {
-        res = nextActionFromAddressSetting(CmdSt, addr, buffer, len, timeout);
-    }
-    else if (CmdSt.command == stCmdList[CMD_GETTAGDATA])
-    {
-        res = nextActionFromGetTagData(CmdSt, addr, buffer, len, timeout);
-    }
-
-    return res;
-}
-
-bool SCCRfidUserProtocol::nextActionFromStatus(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout)
-{
-    if (cmdSt.len <1)
-        return false;
-
-    addStatusToVector(addr, cmdSt);
-    ActionStruct actionSt = getActionFromStatus(m_chStatusVector[addr-1]);
-    getCommandFromAction(actionSt, addr, buffer, len);
-
-    timeout = actionSt.iTimeOut;
-
-    if (actionSt.bAlarm)
-        setAlarm(addr);
-    else
-        clearAlarm(addr);
-
-    if (actionSt.bFail)
-        setFail(addr);
-    else
-        clearFail(addr);
-
-    if (actionSt.bNozzleActived)
-        setNozzleActivated(addr);
-    else
-    {
-        clearNozzleActivated(addr);
-        //clearTagDetected(addr);
-    }
-
-    if (getStatus(addr) != STATUS_TAG_READ_SUCCEEDS && getStatus(addr) != STATUS_TAG_DATA_READY)
-        clearTagDetected(addr);
-    else
-        setTagDetected(addr);
-
-    return true;
-}
-
 char SCCRfidUserProtocol::getStatus(char addr)
 {
     if (addr > MAX_CHANNELS)
         return STATUS_FAILURE;
     return m_chStatusVector[addr-1];
-}
-
-bool SCCRfidUserProtocol::nextActionFromAddressSetting(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout)
-{
-    ActionStruct actionSt(CMD_CHECKSTATUS, 1000, false, false, false);
-
-    getCommandFromAction(actionSt, addr, buffer, len);
-    timeout = actionSt.iTimeOut;
-    return true;
-}
-
-bool SCCRfidUserProtocol::nextActionFromGetTagData(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout)
-{
-    addTagDataToMap(cmdSt, addr);
-    setTagDetected(addr);
-
-    ActionStruct actionSt(CMD_CHECKSTATUS, 1000, false, false, false);
-
-    getCommandFromAction(actionSt, addr, buffer, len);
-    timeout = actionSt.iTimeOut;
-
-    return true;
 }
 
 void SCCRfidUserProtocol::addStatusToVector(char addr, commandStruct& cmdSt)
@@ -527,7 +456,7 @@ void SCCRfidUserProtocol::addTagDataToMap(commandStruct& cmdSt, char addr)
     }
 }
 
-void SCCRfidUserProtocol::getCommandFromAction(ActionStruct& actionSt,char addr, char* buffer, char& len)
+/*void SCCRfidUserProtocol::getCommandFromAction(ActionStruct& actionSt,char addr, char* buffer, char& len)
 {
     if (actionSt.strCmd == CMD_CHECKSTATUS)
         getStrCmdStatusCheck(addr, buffer, len);
@@ -540,7 +469,7 @@ void SCCRfidUserProtocol::getCommandFromAction(ActionStruct& actionSt,char addr,
         *buffer = NULL_CHAR;
         len = 0;
     }
-}
+}*/
 
 void SCCRfidUserProtocol::setVar(int addr, int var)
 {
@@ -778,7 +707,7 @@ bool SCCRfidUserProtocol::getTagId(char addr, char* tagBuffer, char& len)
     return true;
 }
 
-std::string SCCRfidUserProtocol::getCmdReadRegisters(char addr,
+/*std::string SCCRfidUserProtocol::getCmdReadRegisters(char addr,
                                     char* buffer,
                                     char& len,
                                     unsigned int startRegister,
@@ -806,7 +735,7 @@ std::string SCCRfidUserProtocol::getCmdReadRegisters(char addr,
     len = msg.length();
 
     return msg;
-}
+}*/
 
 unsigned char SCCRfidUserProtocol::asciiHexToDec(const char hexHi, const char hexLo)
 {
@@ -944,12 +873,12 @@ void SCCRfidUserProtocol::printData()
 
 void SCCRfidUserProtocol::processRfidUserData(char cmd, char param, char status, char* data, int dataLen)
 {
-    if (cmd == 0x31 && param == 0x40) /* versio */
+    if (cmd == 0x31 && param == 0x40) /* version */
     {
         m_strVersionInfo = convChar2Hex(data, dataLen);
         m_bVersionDetected = true;
     }
-    else if (cmd == 0x34 && param == 0x31) /* TypeA */
+    else if (cmd == 0x34 && param == 0x31) /* get card SN */
     {
         m_strCardSerialNum = convChar2Hex(data, dataLen);
         if (status == 'Y')
@@ -961,6 +890,21 @@ void SCCRfidUserProtocol::processRfidUserData(char cmd, char param, char status,
         else
         {
             if (m_bCardDetected)
+                m_bDetectEvent = true;
+            m_bCardDetected = false;
+        }
+    }
+    else if (cmd == 0x31 && param == 0x3E) /* Beep sound */
+    {
+        if (status == 'Y')
+        {
+            if (!m_bBeepSound)
+                m_bDetectEvent = true;
+            m_bBeepSound = true;
+        }
+        else
+        {
+            if (m_bBeepSound)
                 m_bDetectEvent = true;
             m_bCardDetected = false;
         }

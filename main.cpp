@@ -68,6 +68,7 @@ int main(int argc, char* argv[])
     char chBufferIn[MAX_BUFFER_IN];
     size_t posBuf       = 0;
     bool bOneTime       = false;
+    int iBeepElapsed    = 25;
 
     if (argc > 2)
     {
@@ -86,12 +87,11 @@ int main(int argc, char* argv[])
         }
         if ( argc > 5)
         {
-            /*startReg    = std::stoi(argv[5]);
-            numRegs     = std::stoi(argv[6]);
+            iBeepElapsed    = std::stoi(argv[5]);
         }
-        if (argc > 7)
-        {*/
-            std::string strArg(argv[5]);
+        if ( argc > 6)
+        {
+            std::string strArg(argv[6]);
             if (strArg == "true")
                 bOneTime = true;
         }
@@ -216,10 +216,15 @@ int main(int argc, char* argv[])
                             {
                                 printMsg(rfidUserProtocol.printStatus(iAddr));
                                 iSendCount = 0;
+                                if (!rfidUserProtocol.isBeepSoundDetected() && rfidUserProtocol.isCardDetected())
+                                {
+                                    rfidUserProtocol.getCmdBeepSound(iAddr, bufferOut, chLen,0x01, iBeepElapsed);
+                                }
                             }
                             else
                             {
                                 ++iSendCount;
+                                rfidUserProtocol.clearBeepSoundStatus();
                             }
                         }
                     if (st_bSendMsgView)

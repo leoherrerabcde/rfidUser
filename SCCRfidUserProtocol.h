@@ -203,7 +203,7 @@ class SCCRfidUserProtocol
         virtual ~SCCRfidUserProtocol();
 
         std::string convChar2Hex(char* buffer, int len);
-        std::string getStrCmdStatusCheck(int addr, char* buffer, char& len);
+        //std::string getStrCmdStatusCheck(int addr, char* buffer, char& len);
         std::string getStrCmdSetAddr(int addr, int newAddr, char* buffer, char& len);
         std::string getStrCmdGetTagId(int addr, char* buffer, char& len);
 
@@ -215,6 +215,7 @@ class SCCRfidUserProtocol
         bool getRfidUserResponse(char addr, char* buffer, char len);
         bool verifyResponseFormat(char* buffer, char len, char& cmd, char& param, char& status, char** data, int& dataLen);
         void getCmdSerialNumber(int addr, char* buffer, char& len);
+        void getCmdBeepSound(int addr, char* buffer, char& len, char times, int elapsed);
 
         std::string getStrStatus(char status);
 
@@ -230,7 +231,7 @@ class SCCRfidUserProtocol
         bool getTagId(char addr, char* tagBuffer, char& len);
         char getStatus(char addr);
 
-        std::string getCmdReadRegisters(char addr, char* buffer, char& len, unsigned int startRegister, unsigned int numRegisters);
+        //std::string getCmdReadRegisters(char addr, char* buffer, char& len, unsigned int startRegister, unsigned int numRegisters);
 
         void printData();
 
@@ -238,6 +239,8 @@ class SCCRfidUserProtocol
         bool isVersionDetected() {return m_bVersionDetected;}
         bool isCardDetected() {return m_bCardDetected;}
         bool isDetectEvent() {bool res(m_bDetectEvent); m_bDetectEvent = false; return res;}
+        bool isBeepSoundDetected() {return m_bBeepSound;}
+        void clearBeepSoundStatus() {m_bBeepSound = false;}
 
     protected:
 
@@ -247,17 +250,17 @@ class SCCRfidUserProtocol
         void moveBufferToLeft(char* pos, char offset);
         //std::string getWGTCommand(char cmd);
         //bool getWGTResponse(std::string& cmd, int& addr, char* resp, char& respLen);
-        void addCommandToDvcMap(char cmd, char addr, char* resp, char len);
+        //void addCommandToDvcMap(char cmd, char addr, char* resp, char len);
 
-        bool nextActionFromStatus(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout);
+        /*bool nextActionFromStatus(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout);
         bool nextActionFromAddressSetting(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout);
-        bool nextActionFromGetTagData(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout);
+        bool nextActionFromGetTagData(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout);*/
 
         void addStatusToVector(char addr, commandStruct& cmdSt);
 
         void addTagDataToMap(commandStruct& cmdSt, char addr);
 
-        void getCommandFromAction(ActionStruct& actionSt, char addr, char* buffer, char& len);
+        //void getCommandFromAction(ActionStruct& actionSt, char addr, char* buffer, char& len);
 
         ActionStruct getActionFromStatus(char status);
 
@@ -350,6 +353,7 @@ class SCCRfidUserProtocol
         bool            m_bVersionDetected;
         bool            m_bCardDetected;
         bool            m_bDetectEvent;
+        bool            m_bBeepSound;
 
         //TypeCPUCardActive   m_TypeCardEnable;
         //TypeCPUCardActive   m_TypeCardReady;
