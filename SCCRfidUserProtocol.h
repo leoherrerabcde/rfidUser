@@ -62,7 +62,9 @@
 
 
 
-#define D_INSTANTFLOWRATE			0
+#define VAR_CARD_DETECTED			"RfidCardDetected"
+#define VAR_CARD_SERIALNUM			"RfidCardSerialNum"
+/*#define D_INSTANTFLOWRATE			0
 #define D_FLUIDSPEED				2
 #define D_MEASUREFLUIDSOUNDSPEED	3
 #define L_POSACUMFLOWRATE			4
@@ -81,7 +83,7 @@
 #define VAR_NEGACUMFLOWRATEDECPART	"NegAcumFlowRateDecPart"
 #define VAR_NETACUMFLOWRATE			"NetAcumFlowRate"
 #define VAR_NETACUMFLOWRATEDECPART	"NetAcumFlowRateDecPart"
-
+*/
 
 enum Host2WGTCommand
 {
@@ -102,11 +104,12 @@ enum VariableName
 
 enum TypeCPUCardActive
 {
-    No_Card = 0,
-    TypeACPU,
+    //No_Card = 0,
+    TypeACPU = 0,
     TypeBCPU,
     M1Card,
     SimCard,
+    MaxCPUType,
 };
 
 struct commandStruct
@@ -211,6 +214,7 @@ class SCCRfidUserProtocol
 
         bool getRfidUserResponse(char addr, char* buffer, char len);
         bool verifyResponseFormat(char* buffer, char len, char& cmd, char& param, char& status, char** data, int& dataLen);
+        void getCmdSerialNumber(int addr, char* buffer, char& len);
 
         std::string getStrStatus(char status);
 
@@ -230,7 +234,10 @@ class SCCRfidUserProtocol
 
         void printData();
 
-        void enableCPUCard(TypeCPUCardActive cpuType) {m_TypeCardEnable = cpuType;}
+        void enableCPUCard(TypeCPUCardActive cpuType) {m_CardEnable[cpuType] = true;}
+        bool isVersionDetected() {return m_bVersionDetected;}
+        bool isCardDetected() {return m_bCardDetected;}
+        bool isDetectEvent() {bool res(m_bDetectEvent); m_bDetectEvent = false; return res;}
 
     protected:
 
@@ -238,8 +245,8 @@ class SCCRfidUserProtocol
         unsigned char calcLRC(unsigned char* pFirst,unsigned char len);
         std::string getStrCmd(const std::string& cmd, int addr, int addr2, char* buffer, char& len);
         void moveBufferToLeft(char* pos, char offset);
-        std::string getWGTCommand(char cmd);
-        bool getWGTResponse(std::string& cmd, int& addr, char* resp, char& respLen);
+        //std::string getWGTCommand(char cmd);
+        //bool getWGTResponse(std::string& cmd, int& addr, char* resp, char& respLen);
         void addCommandToDvcMap(char cmd, char addr, char* resp, char len);
 
         bool nextActionFromStatus(commandStruct& cmdSt, int addr, char* buffer, char& len, int& timeout);
@@ -312,6 +319,7 @@ class SCCRfidUserProtocol
         void asciiToReal4(char* p, double& val, char num);
         void asciiHexToFloat(unsigned char* pDst, char* pSrc, size_t bytes);
         //void putData(char* p, char num);
+        void processRfidUserData(char cmd, char param, char status, char* data, int dataLen);
 
     private:
 
@@ -337,9 +345,18 @@ class SCCRfidUserProtocol
         //std::string     m_strData;
         char            m_chData[MAX_RFID_BUF_SIZE];
         int             m_iDataLen;
+        std::string     m_strVersionInfo;
+        std::string     m_strCardSerialNum;
+        bool            m_bVersionDetected;
+        bool            m_bCardDetected;
+        bool            m_bDetectEvent;
 
-        TypeCPUCardActive   m_TypeCardEnable;
-        TypeCPUCardActive   m_TypeCardReady;
+        //TypeCPUCardActive   m_TypeCardEnable;
+        //TypeCPUCardActive   m_TypeCardReady;
+
+        bool            m_CardEnable[MaxCPUType];
+        bool            m_CardReady[MaxCPUType];
+        std::string     m_strCardData[MaxCPUType];
 
 };
 

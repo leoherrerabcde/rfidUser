@@ -74,7 +74,7 @@ static std::unordered_map<int,int> stVariableThresHoldMap =
 };
 
 
-SCCRfidUserProtocol::SCCRfidUserProtocol() : m_pLast(m_chBufferIn), m_iBufferSize(0), m_iDataLen(0), m_TypeCardEnable(No_Card)
+SCCRfidUserProtocol::SCCRfidUserProtocol() : m_pLast(m_chBufferIn), m_iBufferSize(0), m_iDataLen(0)/*, m_TypeCardEnable(No_Card)*/
 {
     //ctor
     memset(m_bAlarmVector,0, sizeof(bool)*MAX_CHANNELS);
@@ -86,6 +86,13 @@ SCCRfidUserProtocol::SCCRfidUserProtocol() : m_pLast(m_chBufferIn), m_iBufferSiz
     for (int addr = 0; addr < MAX_CHANNELS; ++addr)
         for (int var = 0; var < VariableName_size; ++var)
             m_VarStatus[addr][var].iThresHold   = stVariableThresHoldMap[var];
+
+    memset(m_CardEnable, 0, sizeof(bool)*MaxCPUType);
+    memset(m_CardReady, 0, sizeof(bool)*MaxCPUType);
+
+    m_bVersionDetected  = false;
+    m_bCardDetected     = false;
+    m_bDetectEvent      = false;
 }
 
 SCCRfidUserProtocol::~SCCRfidUserProtocol()
@@ -147,6 +154,23 @@ std::string SCCRfidUserProtocol::getStrCmd(const std::string& cmd,
     return msg;
 }
 
+void SCCRfidUserProtocol::getCmdSerialNumber(int addr, char* buffer, char& len)
+{
+    char* p     = buffer;
+    char* pBCC  = buffer;
+
+    *p++ = STX_BYTE;
+    *p++ = 0x00;
+    *p++ = 0x02;
+    *p++ = 0x34;
+    *p++ = 0x31;
+    *p++ = ETX_BYTE;
+    unsigned char chBCC = calcCRC((unsigned char*)pBCC, (unsigned char*)p);
+    *p++ = (char)chBCC;
+    *p = '\0';
+    len = p - buffer;
+}
+
 void SCCRfidUserProtocol::getCmdSWVersion(int addr, char* buffer, char& len)
 {
     char* p     = buffer;
@@ -173,6 +197,8 @@ bool SCCRfidUserProtocol::getRfidUserResponse(char addr, char* buffer, char len)
         return false;
 
     memcpy(m_chData, data, m_iDataLen);
+
+    processRfidUserData(cmd, param, status, data, m_iDataLen);
 
     return true;
 }
@@ -343,7 +369,7 @@ std::string SCCRfidUserProtocol::convChar2Hex(char* buffer, int len)
     return getWGTResponse(cmd, addr, resp, respLen);
 }*/
 
-std::string SCCRfidUserProtocol::getWGTCommand(char cmd)
+/*std::string SCCRfidUserProtocol::getWGTCommand(char cmd)
 {
     for (auto it : stCmdList)
     {
@@ -351,7 +377,7 @@ std::string SCCRfidUserProtocol::getWGTCommand(char cmd)
             return it.first;
     }
     return CMD_INVALID;
-}
+}*/
 
 void SCCRfidUserProtocol::moveBufferToLeft(char* pos, char len)
 {
@@ -680,9 +706,9 @@ std::string SCCRfidUserProtocol::printStatus(char addr, bool addStrData)
 
     ss << MSG_HEADER_TYPE << ASSIGN_CHAR << DEVICE_RFID_BOMBERO;
 
-    /*ss << SEPARATOR_CHAR << VAR_INSTANTFLOWRATE 		<< ASSIGN_CHAR << reg.m_dInstantFlowRate;
-    ss << SEPARATOR_CHAR << VAR_FLUIDSPEED 				<< ASSIGN_CHAR << reg.m_dFluidSpeed;
-    ss << SEPARATOR_CHAR << VAR_MEASUREFLUIDSOUNDSPEED 	<< ASSIGN_CHAR << reg.m_dMeasureFluidSoundSpeed;
+    ss << SEPARATOR_CHAR << VAR_CARD_DETECTED 		<< ASSIGN_CHAR << boolToString(m_bCardDetected);
+    ss << SEPARATOR_CHAR << VAR_CARD_SERIALNUM 		<< ASSIGN_CHAR << m_strCardSerialNum;
+    /*ss << SEPARATOR_CHAR << VAR_MEASUREFLUIDSOUNDSPEED 	<< ASSIGN_CHAR << reg.m_dMeasureFluidSoundSpeed;
     ss << SEPARATOR_CHAR << VAR_POSACUMFLOWRATE 		<< ASSIGN_CHAR << reg.m_lPosAcumFlowRate;
     ss << SEPARATOR_CHAR << VAR_POSACUMFLOWRATEDECPART 	<< ASSIGN_CHAR << reg.m_dPosAcumFlowRateDecPart;
     ss << SEPARATOR_CHAR << VAR_NEGACUMFLOWRATE 		<< ASSIGN_CHAR << reg.m_lNegAcumFlowRate;
@@ -916,3 +942,28 @@ void SCCRfidUserProtocol::printData()
     std::cout << "Data: " << convChar2Hex(m_chData, m_iDataLen) << std::endl;
 }
 
+void SCCRfidUserProtocol::processRfidUserData(char cmd, char param, char status, char* data, int dataLen)
+{
+    if (cmd == 0x31 && param == 0x40) /* versio */
+    {
+        m_strVersionInfo = convChar2Hex(data, dataLen);
+        m_bVersionDetected = true;
+    }
+    else if (cmd == 0x34 && param == 0x31) /* TypeA */
+    {
+        m_strCardSerialNum = convChar2Hex(data, dataLen);
+        if (status == 'Y')
+        {
+            if (!m_bCardDetected)
+                m_bDetectEvent = true;
+            m_bCardDetected = true;
+        }
+        else
+        {
+            if (m_bCardDetected)
+                m_bDetectEvent = true;
+            m_bCardDetected = false;
+        }
+    }
+
+}

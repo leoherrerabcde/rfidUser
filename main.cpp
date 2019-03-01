@@ -19,7 +19,7 @@ using namespace std;
 
 #define MAX_BUFFER_IN   2048
 
-static bool st_bSendMsgView = true;
+static bool st_bSendMsgView = false;
 static bool st_bRcvMsgView  = true;
 
 CSocket sckComPort;
@@ -137,16 +137,21 @@ int main(int argc, char* argv[])
     char chLen = 0;
     //char chLenLast = 0;
     int iNoRxCounter = 0;
+    int iSendCount   = 0;
+    //bool bSendStatus = false;
     do
     {
         bNextAddr = true;
-        iTimeOut = 250;
-        if (iNoRxCounter >= 5)
+        iTimeOut = 50;
+        if (iNoRxCounter >= 2)
         {
             iNoRxCounter = 0;
             //rfidUserProtocol.getStrCmdStatusCheck(iAddr, bufferOut, chLen);
             //rfidUserProtocol.getCmdReadRegisters(iAddr, bufferOut, chLen, startReg, numRegs);
-            rfidUserProtocol.getCmdSWVersion(iAddr, bufferOut, len);
+            if (rfidUserProtocol.isVersionDetected())
+                rfidUserProtocol.getCmdSerialNumber(iAddr, bufferOut, chLen);
+            else
+                rfidUserProtocol.getCmdSWVersion(iAddr, bufferOut, chLen);
         }
         if (chLen > 0)
         {
@@ -179,12 +184,12 @@ int main(int argc, char* argv[])
                     memcpy(&chBufferIn[posBuf], bufferIn, iLen);
                     posBuf += iLen;
                 }
-                //len = (char)iLen;
-                /*if (st_bRcvMsgView)
+                /*len = (char)iLen;
+                if (st_bRcvMsgView)
                 {
                     msg = rfidUserProtocol.convChar2Hex(bufferIn, len);
-                    cout << ++nCount << " Buffer In(Hex): [" << msg << "]. Buffer In(char): [" << bufferIn << "]" << std::endl;
-                }*/
+                    cout << " Buffer In(Hex): [" << msg << "]. Buffer In(char): [" << bufferIn << "]" << std::endl;
+                */
                 std::string strCmd;
                 //char resp[256];
                 //int addr = iAddr;
@@ -207,7 +212,15 @@ int main(int argc, char* argv[])
                         {
                             //std::stringstream ss;
                             //ss << ++nCount << " " << commPort.printCounter() << rfidUserProtocol.printStatus(iAddr) << std::endl;
-                            printMsg(rfidUserProtocol.printStatus(iAddr));
+                            if (rfidUserProtocol.isCardDetected() || rfidUserProtocol.isDetectEvent() || iSendCount > 4)
+                            {
+                                printMsg(rfidUserProtocol.printStatus(iAddr));
+                                iSendCount = 0;
+                            }
+                            else
+                            {
+                                ++iSendCount;
+                            }
                         }
                     if (st_bSendMsgView)
                         rfidUserProtocol.printData();
