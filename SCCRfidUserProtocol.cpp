@@ -94,6 +94,7 @@ SCCRfidUserProtocol::SCCRfidUserProtocol() : m_pLast(m_chBufferIn), m_iBufferSiz
     m_bCardDetected     = false;
     m_bDetectEvent      = false;
     m_bBeepSound        = false;
+    m_bCardChanged       = false;
 }
 
 SCCRfidUserProtocol::~SCCRfidUserProtocol()
@@ -210,7 +211,7 @@ void SCCRfidUserProtocol::getCmdSWVersion(int addr, char* buffer, char& len)
     len = p - buffer;
 }
 
-bool SCCRfidUserProtocol::getRfidUserResponse(char addr, char* buffer, char len)
+bool SCCRfidUserProtocol::getRfidUserResponse(char addr, char* buffer, int len)
 {
     char cmd, param, status;
     char* data;
@@ -225,7 +226,7 @@ bool SCCRfidUserProtocol::getRfidUserResponse(char addr, char* buffer, char len)
     return true;
 }
 
-bool SCCRfidUserProtocol::verifyResponseFormat(char* buffer, char len, char& cmd, char& param, char& status, char** data, int& dataLen)
+bool SCCRfidUserProtocol::verifyResponseFormat(char* buffer, int len, char& cmd, char& param, char& status, char** data, int& dataLen)
 {
     char* p     = buffer;
     int16_t inputLength;
@@ -248,7 +249,10 @@ bool SCCRfidUserProtocol::verifyResponseFormat(char* buffer, char len, char& cmd
     dataLen = inputLength;
     p += (inputLength-2);
     if (*p != (char)calcCRC((unsigned char*)buffer, (unsigned char*)p))
+    {
+        *buffer = 0x00; /* Eliminate Current Frame */
         return false;
+    }
     return true;
 }
 
@@ -880,11 +884,14 @@ void SCCRfidUserProtocol::processRfidUserData(char cmd, char param, char status,
     }
     else if (cmd == 0x34 && param == 0x31) /* get card SN */
     {
-        m_strCardSerialNum = convChar2Hex(data, dataLen);
+        std::string str = convChar2Hex(data, dataLen);
+        //m_strCardSerialNum = convChar2Hex(data, dataLen);
         if (status == 'Y')
         {
-            if (!m_bCardDetected)
+            if (!m_bCardDetected || m_strCardSerialNum != str)
                 m_bDetectEvent = true;
+            if (m_bCardDetected && m_strCardSerialNum != str)
+                m_bCardChanged = true;
             m_bCardDetected = true;
         }
         else
@@ -893,6 +900,7 @@ void SCCRfidUserProtocol::processRfidUserData(char cmd, char param, char status,
                 m_bDetectEvent = true;
             m_bCardDetected = false;
         }
+        m_strCardSerialNum = str;
     }
     else if (cmd == 0x31 && param == 0x3E) /* Beep sound */
     {
@@ -910,4 +918,48 @@ void SCCRfidUserProtocol::processRfidUserData(char cmd, char param, char status,
         }
     }
 
+}
+
+bool SCCRfidUserProtocol::findStartFrame(char* buffer, size_t& len)
+{
+    char* p         = buffer;
+    size_t offset   = 0;
+
+    do
+    {
+        while (offset < len &&  *p != STX_BYTE)
+        {
+            ++p;
+            ++offset;
+        }
+
+        if (len == offset)
+        {
+            len = 0;
+            return false;
+        }
+
+        if (*p != STX_BYTE)
+        {
+            ++p;
+            ++offset;
+            continue;
+        }
+        if (offset < (len-1) && *(p+1) == STX_BYTE)
+        {
+            ++p;
+            ++offset;
+            continue;
+        }
+        if (offset)
+        {
+            memmove(buffer, p, len - offset);
+            len -= offset;
+        }
+        if (buffer[0] != STX_BYTE)
+            return false;
+        return true;
+    }
+    while (offset < len &&  *p == STX_BYTE);
+    return false;
 }

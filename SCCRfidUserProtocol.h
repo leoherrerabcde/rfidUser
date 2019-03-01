@@ -212,8 +212,8 @@ class SCCRfidUserProtocol
         /*bool getWGTResponse(char* buffer, char len, std::string& cmd, int& addr, char* resp, char& respLen);
         bool getFlowMeterResponse(char addr, char* buffer, char len);*/
 
-        bool getRfidUserResponse(char addr, char* buffer, char len);
-        bool verifyResponseFormat(char* buffer, char len, char& cmd, char& param, char& status, char** data, int& dataLen);
+        bool getRfidUserResponse(char addr, char* buffer, int len);
+        bool verifyResponseFormat(char* buffer, int len, char& cmd, char& param, char& status, char** data, int& dataLen);
         void getCmdSerialNumber(int addr, char* buffer, char& len);
         void getCmdBeepSound(int addr, char* buffer, char& len, char times, int elapsed);
 
@@ -241,6 +241,8 @@ class SCCRfidUserProtocol
         bool isDetectEvent() {bool res(m_bDetectEvent); m_bDetectEvent = false; return res;}
         bool isBeepSoundDetected() {return m_bBeepSound;}
         void clearBeepSoundStatus() {m_bBeepSound = false;}
+        bool findStartFrame(char* buffer, size_t& len);
+        bool isCardChanged() {bool res(m_bCardChanged); m_bCardChanged=false;return res;}
 
     protected:
 
@@ -354,6 +356,7 @@ class SCCRfidUserProtocol
         bool            m_bCardDetected;
         bool            m_bDetectEvent;
         bool            m_bBeepSound;
+        bool            m_bCardChanged;
 
         //TypeCPUCardActive   m_TypeCardEnable;
         //TypeCPUCardActive   m_TypeCardReady;

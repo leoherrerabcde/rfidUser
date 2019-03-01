@@ -57,6 +57,7 @@ void printMsg(std::string msg)
     }
 }
 
+
 int main(int argc, char* argv[])
 {
     int nPort           = 7;
@@ -79,8 +80,13 @@ int main(int argc, char* argv[])
         if (argc > 4)
         {
             std::string strArg(argv[4]);
-            if (std::all_of(strArg.begin(), strArg.end(), ::isdigit))
-                fTimeFactor = std::stof(argv[4]);
+            //if (std::all_of(strArg.begin(), strArg.end(), ::isdigit))
+            if (strArg.find_first_not_of("0123456789.-") == std::string::npos)
+            {
+                float f = std::stof(argv[4]);
+                if (f > 0.0)
+                    fTimeFactor = f;
+            }
             else
                 if (strArg == "ViewSend")
                     st_bSendMsgView = true;
@@ -96,6 +102,15 @@ int main(int argc, char* argv[])
                 bOneTime = true;
         }
     }
+
+    std::cout << "Starting " << DEVICE_RFID_BOMBERO << " with parameters:" << std::endl << std::endl;
+    std::cout << "Com Port: "           << nPort << std::endl;
+    std::cout << "Baud Rate: "          << baudRate << std::endl;
+    std::cout << "Socket Remote Port: " << remotePort << std::endl;
+    std::cout << "Timer Factor: "       << fTimeFactor << std::endl;
+    std::cout << "View Data Sent: "     << st_bSendMsgView << std::endl;
+    std::cout << "Beep Time: "          << iBeepElapsed << std::endl;
+    std::cout << "One Operation: "      << bOneTime << std::endl << std::endl;
 
     if (remotePort)
     {
@@ -133,15 +148,14 @@ int main(int argc, char* argv[])
     msg = "";
 
     int iTimeOut;
-    bool bNextAddr;
     char chLen = 0;
     //char chLenLast = 0;
     int iNoRxCounter = 0;
     int iSendCount   = 0;
+    //bool bRespOk     = false;
     //bool bSendStatus = false;
     do
     {
-        bNextAddr = true;
         iTimeOut = 50;
         if (iNoRxCounter >= 2)
         {
@@ -166,12 +180,10 @@ int main(int argc, char* argv[])
             //chLenLast = chLen;
             chLen = 0;
             //iTimeOut = 20;
-            bNextAddr = false;
         }
-        if (commPort.isRxEvent() == true)
+        while (commPort.isRxEvent() == true)
         {
             iNoRxCounter = 0;
-            bNextAddr =false;
             int iLen;
             bool ret = commPort.getData(bufferIn, iLen);
             if (st_bSendMsgView)
@@ -184,30 +196,25 @@ int main(int argc, char* argv[])
                     memcpy(&chBufferIn[posBuf], bufferIn, iLen);
                     posBuf += iLen;
                 }
-                /*len = (char)iLen;
-                if (st_bRcvMsgView)
+                while (rfidUserProtocol.findStartFrame(chBufferIn, posBuf))
                 {
-                    msg = rfidUserProtocol.convChar2Hex(bufferIn, len);
-                    cout << " Buffer In(Hex): [" << msg << "]. Buffer In(char): [" << bufferIn << "]" << std::endl;
-                */
-                std::string strCmd;
-                //char resp[256];
-                //int addr = iAddr;
-                //char respLen = 0;
-                bool bIsValidResponse = rfidUserProtocol.getRfidUserResponse(iAddr, chBufferIn, posBuf);
-                //bool bNextAction = false;
-                if (bIsValidResponse == true)
-                {
-                    posBuf = 0;
-                    //iTimeOut = 50;
+                    /*len = (char)iLen;
                     if (st_bRcvMsgView)
                     {
-                        //cout << ++nCount << " " << commPort.printCounter() << clock.getTimeStamp() << " Valid WGT Response" << std::endl;
-                        /*if (strCmd == CMD_CHECKSTATUS)
-                            cout << ++nCount << " WGT Status: " << rfidUserProtocol.getStrStatus(resp[0]) << endl;*/
-                    }
-                    /*bNextAction = rfidUserProtocol.nextAction(iAddr, bufferOut, chLen, iTimeOut);
-                    if (bNextAction == true)*/
+                        msg = rfidUserProtocol.convChar2Hex(bufferIn, len);
+                        cout << " Buffer In(Hex): [" << msg << "]. Buffer In(char): [" << bufferIn << "]" << std::endl;
+                    */
+                    std::string strCmd;
+                    bool bIsValidResponse = rfidUserProtocol.getRfidUserResponse(iAddr, chBufferIn, posBuf);
+                    if (bIsValidResponse == true)
+                    {
+                        posBuf = 0;
+                        if (st_bRcvMsgView)
+                        {
+                            //cout << ++nCount << " " << commPort.printCounter() << clock.getTimeStamp() << " Valid WGT Response" << std::endl;
+                            /*if (strCmd == CMD_CHECKSTATUS)
+                                cout << ++nCount << " WGT Status: " << rfidUserProtocol.getStrStatus(resp[0]) << endl;*/
+                        }
                         if (st_bRcvMsgView)
                         {
                             //std::stringstream ss;
@@ -216,7 +223,7 @@ int main(int argc, char* argv[])
                             {
                                 printMsg(rfidUserProtocol.printStatus(iAddr));
                                 iSendCount = 0;
-                                if (!rfidUserProtocol.isBeepSoundDetected() && rfidUserProtocol.isCardDetected())
+                                if (!rfidUserProtocol.isBeepSoundDetected() && rfidUserProtocol.isCardDetected() || rfidUserProtocol.isCardChanged())
                                 {
                                     rfidUserProtocol.getCmdBeepSound(iAddr, bufferOut, chLen,0x01, iBeepElapsed);
                                 }
@@ -227,24 +234,32 @@ int main(int argc, char* argv[])
                                 rfidUserProtocol.clearBeepSoundStatus();
                             }
                         }
-                    if (st_bSendMsgView)
-                        rfidUserProtocol.printData();
-                    if (bOneTime)
+                        if (st_bSendMsgView)
+                            rfidUserProtocol.printData();
+                        if (bOneTime)
+                            break;
+                    }
+                    else
+                    {
+                        iTimeOut = 0;
+                        commPort.sleepDuringTxRx(4+11);
                         break;
+                    }
                 }
-                else
-                {
-                    iTimeOut = 0;
-                    commPort.sleepDuringTxRx(4+11);
-                }
+                if (bOneTime)
+                    break;
             }
         }
+        if (bOneTime)
+            break;
         if (iTimeOut > 0)
-            std::this_thread::sleep_for(std::chrono::milliseconds((int)(iTimeOut*fTimeFactor)));
-        if (bNextAddr == true)
         {
-            //++iAddr;
+            int tmOut = (int)(iTimeOut*fTimeFactor);
+            if (!tmOut)
+                tmOut = 1;
+            std::this_thread::sleep_for(std::chrono::milliseconds(tmOut));
         }
+
         if (/*bConnecting ==true || */bConnected == true)
         {
             if (sckComPort.getState() == sckError)
