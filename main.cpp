@@ -223,7 +223,7 @@ int main(int argc, char* argv[])
                             {
                                 printMsg(rfidUserProtocol.printStatus(iAddr));
                                 iSendCount = 0;
-                                if (!rfidUserProtocol.isBeepSoundDetected() && rfidUserProtocol.isCardDetected() || rfidUserProtocol.isCardChanged())
+                                if ((!rfidUserProtocol.isBeepSoundDetected() && rfidUserProtocol.isCardDetected()) || rfidUserProtocol.isCardChanged())
                                 {
                                     rfidUserProtocol.getCmdBeepSound(iAddr, bufferOut, chLen,0x01, iBeepElapsed);
                                 }
