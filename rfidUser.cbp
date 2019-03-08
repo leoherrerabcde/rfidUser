@@ -47,7 +47,11 @@
 		<Unit filename="../commPort/SCCRealTime.h" />
 		<Unit filename="../main_control/CSocket.cpp" />
 		<Unit filename="../main_control/CSocket.h" />
+		<Unit filename="../main_control/SCCAlive.cpp" />
+		<Unit filename="../main_control/SCCAlive.h" />
 		<Unit filename="../main_control/SCCDeviceNames.h" />
+		<Unit filename="../main_control/SCCFileManager.cpp" />
+		<Unit filename="../main_control/SCCFileManager.h" />
 		<Unit filename="../main_control/SCCLog.cpp" />
 		<Unit filename="../main_control/SCCLog.h" />
 		<Unit filename="SCCRfidUserProtocol.cpp" />

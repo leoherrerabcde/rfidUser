@@ -23,7 +23,7 @@ static bool st_bSendMsgView = false;
 static bool st_bRcvMsgView  = true;
 
 CSocket sckComPort;
-SCCLog glLog(std::cout);
+SCCLog globalLog(std::cout);
 
 bool bConnected     = false;
 
@@ -121,34 +121,36 @@ int main(int argc, char* argv[])
     SCCRfidUserProtocol rfidUserProtocol;
     SCCRealTime clock;
 
-    commPort.openPort(nPort, baudRate);
+    //commPort.openPort(nPort, baudRate);
+    commPort.setBaudRate(baudRate);
+    commPort.getComPortList(nPort);
 
     char bufferOut[255];
     char bufferIn[250];
-    char len;
+    //char len;
+    char chLen = 0;
     int iAddr = 1;
     std::string msg;
 
     //msg = rfidUserProtocol.getStrCmdStatusCheck(iAddr, bufferOut, len);
     //msg = rfidUserProtocol.getCmdReadRegisters(iAddr, bufferOut, len, startReg, numRegs);
-    rfidUserProtocol.getCmdSWVersion(iAddr, bufferOut, len);
+    rfidUserProtocol.getCmdSWVersion(iAddr, bufferOut, chLen);
 
     //rfidUserProtocol.getCmdReadRegisters(iAddr, bufferOut, len);
 
-    msg = rfidUserProtocol.convChar2Hex(bufferOut, len);
+    msg = rfidUserProtocol.convChar2Hex(bufferOut, chLen);
 
     if (st_bSendMsgView)
         std::cout << "Message: " << msg << " bin: "<< bufferOut << " sent." << std::endl;
 
-    commPort.sendData(bufferOut, len);
-    commPort.sleepDuringTxRx(len+4+11);
+    /*commPort.sendData(bufferOut, chLen);
+    commPort.sleepDuringTxRx(len+4+11);*/
 
     if (st_bSendMsgView)
         cout << "Waiting for response" << std::endl;
     msg = "";
 
     int iTimeOut;
-    char chLen = 0;
     //char chLenLast = 0;
     int iNoRxCounter = 0;
     int iSendCount   = 0;
@@ -169,6 +171,7 @@ int main(int argc, char* argv[])
         }
         if (chLen > 0)
         {
+            commPort.searchNextPort();
             if (st_bSendMsgView)
             {
                 cout << commPort.printCounter() << std::endl;
@@ -208,6 +211,7 @@ int main(int argc, char* argv[])
                     bool bIsValidResponse = rfidUserProtocol.getRfidUserResponse(iAddr, chBufferIn, posBuf);
                     if (bIsValidResponse == true)
                     {
+                        commPort.stopSearchPort();
                         posBuf = 0;
                         if (st_bRcvMsgView)
                         {
