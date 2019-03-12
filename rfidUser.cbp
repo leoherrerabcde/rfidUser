@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="1 9600 4000 " />
+				<Option parameters="0 9600 4000 " />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -50,10 +50,13 @@
 		<Unit filename="../main_control/SCCAlive.cpp" />
 		<Unit filename="../main_control/SCCAlive.h" />
 		<Unit filename="../main_control/SCCDeviceNames.h" />
+		<Unit filename="../main_control/SCCDeviceParams.h" />
 		<Unit filename="../main_control/SCCFileManager.cpp" />
 		<Unit filename="../main_control/SCCFileManager.h" />
 		<Unit filename="../main_control/SCCLog.cpp" />
 		<Unit filename="../main_control/SCCLog.h" />
+		<Unit filename="../main_control/device.cpp" />
+		<Unit filename="../main_control/device.h" />
 		<Unit filename="SCCRfidUserProtocol.cpp" />
 		<Unit filename="SCCRfidUserProtocol.h" />
 		<Unit filename="main.cpp" />

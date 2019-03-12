@@ -13,17 +13,21 @@
 
 #include "../main_control/CSocket.h"
 #include "../main_control/SCCDeviceNames.h"
+#include "../main_control/SCCDeviceParams.h"
 #include "../main_control/SCCLog.h"
 
 using namespace std;
 
 #define MAX_BUFFER_IN   2048
+#define MY_DEVICE_NAME  DEVICE_RFID_BOMBERO
 
 static bool st_bSendMsgView = false;
 static bool st_bRcvMsgView  = true;
 
+SCCCommPort commPort;
 CSocket sckComPort;
 SCCLog globalLog(std::cout);
+bool gl_bVerbose(true);
 
 bool bConnected     = false;
 
@@ -33,13 +37,14 @@ std::string firstMessage()
 
     ss << FRAME_START_MARK;
     ss << DEVICE_NAME << ":" << DEVICE_RFID_BOMBERO << ",";
-    ss << SERVICE_PID << ":" << getpid();
+    ss << SERVICE_PID << ":" << getpid() << ",";
+    ss << PARAM_COM_PORT << ":" << commPort.getComPort();
     ss << FRAME_STOP_MARK;
 
     return std::string(ss.str());
 }
 
-void printMsg(std::string msg)
+void printMsg(const std::string& msg = "")
 {
     if (sckComPort.isConnected())
     {
@@ -60,12 +65,11 @@ void printMsg(std::string msg)
 
 int main(int argc, char* argv[])
 {
-    int nPort           = 7;
+    std::string         nPort;
     int baudRate        = 9600;
     float fTimeFactor   = 1.0;
     int remotePort      = 0;
-    //int startReg        = 1;
-    //int numRegs         = MAX_REGISTERS;
+
     char chBufferIn[MAX_BUFFER_IN];
     size_t posBuf       = 0;
     bool bOneTime       = false;
@@ -73,7 +77,7 @@ int main(int argc, char* argv[])
 
     if (argc > 2)
     {
-        nPort = std::stoi(argv[1]);
+        nPort = argv[1];
         baudRate = std::stoi(argv[2]);
         if (argc > 3)
             remotePort = std::stoi(argv[3]);
@@ -117,11 +121,14 @@ int main(int argc, char* argv[])
         sckComPort.connect("127.0.0.1", remotePort);
         bConnected  = false;
     }
-    SCCCommPort commPort;
+
+    commPort.setDeviceName(MY_DEVICE_NAME);
+    commPort.setArgs(argc, &argv[0]);
     SCCRfidUserProtocol rfidUserProtocol;
     SCCRealTime clock;
 
     //commPort.openPort(nPort, baudRate);
+    commPort.setDeviceName(MY_DEVICE_NAME);
     commPort.setBaudRate(baudRate);
     commPort.getComPortList(nPort);
 
@@ -158,6 +165,8 @@ int main(int argc, char* argv[])
     //bool bSendStatus = false;
     do
     {
+        /*if (!bConnected && sckComPort.isConnected())
+            printMsg();*/
         iTimeOut = 50;
         if (iNoRxCounter >= 2)
         {
@@ -171,7 +180,8 @@ int main(int argc, char* argv[])
         }
         if (chLen > 0)
         {
-            commPort.searchNextPort();
+            if (!commPort.isDeviceConnected() && !commPort.searchNextPort())
+                break;
             if (st_bSendMsgView)
             {
                 cout << commPort.printCounter() << std::endl;
@@ -211,6 +221,7 @@ int main(int argc, char* argv[])
                     bool bIsValidResponse = rfidUserProtocol.getRfidUserResponse(iAddr, chBufferIn, posBuf);
                     if (bIsValidResponse == true)
                     {
+                        commPort.setDeviceConnected();
                         commPort.stopSearchPort();
                         posBuf = 0;
                         if (st_bRcvMsgView)
