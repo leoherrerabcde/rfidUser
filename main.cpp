@@ -163,6 +163,7 @@ int main(int argc, char* argv[])
     int iSendCount   = 0;
     //bool bRespOk     = false;
     //bool bSendStatus = false;
+    char simcard = 0x30;
     do
     {
         /*if (!bConnected && sckComPort.isConnected())
@@ -173,8 +174,12 @@ int main(int argc, char* argv[])
             iNoRxCounter = 0;
             //rfidUserProtocol.getStrCmdStatusCheck(iAddr, bufferOut, chLen);
             //rfidUserProtocol.getCmdReadRegisters(iAddr, bufferOut, chLen, startReg, numRegs);
-            if (rfidUserProtocol.isVersionDetected())
+            if (rfidUserProtocol.isVersionDetected()){
                 rfidUserProtocol.getCmdSerialNumber(iAddr, bufferOut, chLen);
+                //rfidUserProtocol.getCmdActiveCPUCard(iAddr, bufferOut, chLen);
+                simcard++;
+                if (simcard > 0x33)
+                    simcard = 0x30;}
             else
                 rfidUserProtocol.getCmdSWVersion(iAddr, bufferOut, chLen);
         }
@@ -200,8 +205,10 @@ int main(int argc, char* argv[])
             int iLen;
             bool ret = commPort.getData(bufferIn, iLen);
             if (st_bSendMsgView)
-                cout << " bufferIn.len(): " << iLen << ". bufferIn(char): [" << bufferIn << "]" << std::endl;
-
+            {
+                msg = rfidUserProtocol.convChar2Hex(bufferIn, iLen);
+                cout << " bufferIn.len(): " << iLen << ". bufferIn(char): [" << msg << "]" << std::endl;
+            }
             if (ret == true)
             {
                 if (posBuf + iLen < MAX_BUFFER_IN)

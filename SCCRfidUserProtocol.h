@@ -216,6 +216,8 @@ class SCCRfidUserProtocol
         bool verifyResponseFormat(char* buffer, int len, char& cmd, char& param, char& status, char** data, int& dataLen);
         void getCmdSerialNumber(int addr, char* buffer, char& len);
         void getCmdBeepSound(int addr, char* buffer, char& len, char times, int elapsed);
+        void getCmdResetSIMCard(int addr, char* buffer, char& len, char& simcard);
+        void getCmdActiveCPUCard(int addr, char* buffer, char& len);
 
         std::string getStrStatus(char status);
 

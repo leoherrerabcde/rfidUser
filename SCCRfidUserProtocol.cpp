@@ -211,6 +211,41 @@ void SCCRfidUserProtocol::getCmdSWVersion(int addr, char* buffer, char& len)
     len = p - buffer;
 }
 
+void SCCRfidUserProtocol::getCmdResetSIMCard(int addr, char* buffer, char& len, char& simcard)
+{
+    char* p     = buffer;
+    char* pBCC  = buffer;
+
+    *p++ = STX_BYTE;
+    *p++ = 0x00;
+    *p++ = 0x03;
+    *p++ = 0x3D;
+    *p++ = 0x41;
+    *p++ = simcard;
+    *p++ = ETX_BYTE;
+    unsigned char chBCC = calcCRC((unsigned char*)pBCC, (unsigned char*)p);
+    *p++ = (char)chBCC;
+    *p = '\0';
+    len = p - buffer;
+}
+
+void SCCRfidUserProtocol::getCmdActiveCPUCard(int addr, char* buffer, char& len)
+{
+    char* p     = buffer;
+    char* pBCC  = buffer;
+
+    *p++ = STX_BYTE;
+    *p++ = 0x00;
+    *p++ = 0x02;
+    *p++ = 0x34;
+    *p++ = 0x40;
+    *p++ = ETX_BYTE;
+    unsigned char chBCC = calcCRC((unsigned char*)pBCC, (unsigned char*)p);
+    *p++ = (char)chBCC;
+    *p = '\0';
+    len = p - buffer;
+}
+
 bool SCCRfidUserProtocol::getRfidUserResponse(char addr, char* buffer, int len)
 {
     char cmd, param, status;
