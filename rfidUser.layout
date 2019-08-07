@@ -17,29 +17,9 @@
 			<Cursor1 position="144" topLine="6" />
 		</Cursor>
 	</File>
-	<File name="../commPort/SCCCommPort.cpp" open="1" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="SCCRfidUserProtocol.h" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="3219" topLine="144" />
-		</Cursor>
-	</File>
-	<File name="../commPort/SCCCommPort.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1370" topLine="47" />
-		</Cursor>
-	</File>
-	<File name="../main_control/SCCAlive.cpp" open="1" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="2478" topLine="86" />
-		</Cursor>
-	</File>
-	<File name="../commPort/SCCLinuxComPort.cpp" open="1" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="1539" topLine="56" />
-		</Cursor>
-	</File>
-	<File name="../main_control/CSocket.cpp" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
-		<Cursor>
-			<Cursor1 position="11783" topLine="467" />
+			<Cursor1 position="5910" topLine="212" />
 		</Cursor>
 	</File>
 	<File name="main.cpp" open="1" top="1" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
@@ -47,9 +27,29 @@
 			<Cursor1 position="9870" topLine="268" />
 		</Cursor>
 	</File>
-	<File name="SCCRfidUserProtocol.h" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+	<File name="../commPort/SCCLinuxComPort.cpp" open="1" top="0" tabpos="5" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
 		<Cursor>
-			<Cursor1 position="5910" topLine="212" />
+			<Cursor1 position="1539" topLine="56" />
+		</Cursor>
+	</File>
+	<File name="../main_control/SCCAlive.cpp" open="1" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2478" topLine="86" />
+		</Cursor>
+	</File>
+	<File name="../commPort/SCCCommPort.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1370" topLine="47" />
+		</Cursor>
+	</File>
+	<File name="../commPort/SCCCommPort.cpp" open="1" top="0" tabpos="6" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="3219" topLine="144" />
+		</Cursor>
+	</File>
+	<File name="../main_control/CSocket.cpp" open="0" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="11783" topLine="467" />
 		</Cursor>
 	</File>
 	<File name="SCCRfidUserProtocol.cpp" open="1" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
