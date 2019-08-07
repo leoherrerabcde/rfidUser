@@ -284,7 +284,7 @@ int main(int argc, char* argv[])
 
         if (/*bConnecting ==true || */bConnected == true)
         {
-            if (sckComPort.getState() == sckError)
+            if (sckComPort.getSocketState() == sckError)
             {
                 if (remotePort)
                 {
